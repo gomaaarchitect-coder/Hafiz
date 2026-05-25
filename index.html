@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>حافظ · Quran Tracker</title>
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#8b6914">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- iOS specific -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="حافظ">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:    #ede4cf;
+  --surface: #ffffff;
+  --border:  #ddd0b0;
+  --border-lt:#eee4c8;
+  --gold:    #8b6914;
+  --gold-md: #b08020;
+  --gold-hi: #c9a227;
+  --gold-bg: rgba(139,105,20,0.08);
+  --gold-dim:rgba(139,105,20,0.22);
+  --red:      #b83232;  --red-bg:   rgba(184,50,50,0.08);  --red-bdr:  rgba(184,50,50,0.28);
+  --amber:    #9c6208;  --amber-bg: rgba(156,98,8,0.08);   --amber-bdr:rgba(156,98,8,0.28);
+  --green:    #1a7040;  --green-bg: rgba(26,112,64,0.08);  --green-bdr:rgba(26,112,64,0.28);
+  --t1:#1a1508; --t2:#6b5828; --t3:#a08858;
+  --radius:12px;
+  --shadow:0 1px 4px rgba(0,0,0,0.07),0 4px 16px rgba(0,0,0,0.05);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--page);min-height:100vh;color:var(--t1);font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;line-height:1.5;overflow-x:hidden;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
+body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(45deg,transparent,transparent 28px,rgba(139,105,20,0.03) 28px,rgba(139,105,20,0.03) 29px),repeating-linear-gradient(-45deg,transparent,transparent 28px,rgba(139,105,20,0.03) 28px,rgba(139,105,20,0.03) 29px);pointer-events:none;z-index:0;}
+body>*{position:relative;z-index:1;}
+
+/* ── HEADER ─────────────────────────────────────────────────── */
+header{background:var(--surface);border-bottom:2px solid var(--border);box-shadow:0 2px 14px rgba(139,105,20,0.10);position:sticky;top:0;z-index:100;text-align:center;padding:18px 20px 0;}
+.header-title{font-size:clamp(24px,5vw,32px);font-weight:700;color:var(--gold);letter-spacing:.07em;line-height:1;}
+.header-subtitle{font-family:'Amiri',serif;font-size:clamp(15px,3.5vw,19px);color:var(--t2);margin-top:4px;direction:rtl;}
+.tab-bar{display:flex;justify-content:center;margin-top:16px;border-top:1px solid var(--border-lt);}
+.tab-btn{flex:1;max-width:220px;background:none;border:none;border-bottom:3px solid transparent;color:var(--t3);padding:12px 8px;font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;letter-spacing:.03em;cursor:pointer;transition:color .2s,border-color .2s;}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab-btn:hover:not(.active){color:var(--t1);}
+.tab-panel{display:none;} .tab-panel.active{display:block;}
+
+/* ── MEMORIZATION ───────────────────────────────────────────── */
+.mem-hero{text-align:center;padding:32px 20px 22px;}
+.progress-ring-wrap{display:inline-flex;flex-direction:column;align-items:center;gap:10px;}
+.progress-ring{position:relative;width:136px;height:136px;filter:drop-shadow(0 4px 12px rgba(139,105,20,.18));}
+.progress-ring svg{width:136px;height:136px;transform:rotate(-90deg);}
+.progress-ring circle.track{fill:none;stroke:var(--border);stroke-width:8;}
+.progress-ring circle.fill{fill:none;stroke:var(--gold-hi);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .6s ease;}
+.progress-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.progress-count{font-size:34px;font-weight:700;color:var(--gold);line-height:1;}
+.progress-total{font-size:14px;color:var(--t2);font-style:italic;}
+.progress-pct{font-size:16px;color:var(--t2);font-style:italic;}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:0 14px 14px;max-width:680px;margin:0 auto;}
+.search-input{flex:1;min-width:180px;background:var(--surface);border:1.5px solid var(--border);border-radius:30px;padding:9px 18px;color:var(--t1);font-family:'Cormorant Garamond',serif;font-size:17px;outline:none;transition:border-color .2s;box-shadow:var(--shadow);}
+.search-input:focus{border-color:var(--gold-md);}
+.search-input::placeholder{color:var(--t3);}
+.filter-chips{display:flex;gap:7px;}
+.chip{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;color:var(--t2);padding:6px 16px;font-family:'Cormorant Garamond',serif;font-size:15px;cursor:pointer;transition:all .18s;white-space:nowrap;box-shadow:var(--shadow);}
+.chip.active,.chip:hover{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-dim);}
+
+.surah-list{padding:0 12px 60px;max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:6px;}
+.surah-card{background:var(--surface);border:1.5px solid var(--border-lt);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);transition:border-color .18s,box-shadow .18s;animation:fadeUp .2s ease;}
+.surah-card:hover{border-color:var(--gold-dim);box-shadow:0 4px 20px rgba(139,105,20,.12);}
+.surah-card.memorized{border-left:4px solid var(--green);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+.surah-num{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--gold-dim);background:var(--gold-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--gold);flex-shrink:0;}
+.mem-checkbox{width:20px;height:20px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
+.surah-info{flex:1;min-width:0;}
+.surah-name{font-size:18px;font-weight:600;color:var(--t1);}
+.surah-arabic{font-family:'Amiri',serif;font-size:20px;color:var(--t2);direction:rtl;margin-top:1px;}
+.surah-meta{font-size:13px;color:var(--t3);margin-top:1px;font-style:italic;}
+
+/* ── REVIEW ─────────────────────────────────────────────────── */
+.review-header{padding:22px 16px 14px;max-width:680px;margin:0 auto;}
+.review-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;}
+.cycle-picker{display:flex;align-items:center;gap:8px;background:var(--surface);border:1.5px solid var(--border);border-radius:30px;padding:7px 16px;box-shadow:var(--shadow);}
+.cycle-label{font-size:15px;color:var(--t2);}
+.cycle-btn{background:none;border:1.5px solid var(--gold-md);border-radius:20px;padding:4px 16px;color:var(--gold-md);font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .18s;}
+.cycle-btn.active{background:var(--gold);color:#fff;border-color:var(--gold);}
+.notif-btn{background:var(--surface);border:1.5px solid var(--border);border-radius:30px;padding:8px 18px;color:var(--gold-md);font-family:'Cormorant Garamond',serif;font-size:15px;cursor:pointer;transition:all .18s;box-shadow:var(--shadow);}
+.notif-btn.granted{background:var(--green-bg);border-color:var(--green-bdr);color:var(--green);cursor:default;}
+.notif-btn.denied{background:var(--red-bg);border-color:var(--red-bdr);color:var(--red);cursor:default;}
+.summary-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+.summary-badge{border-radius:20px;padding:5px 14px;font-size:15px;font-weight:600;border:1.5px solid;cursor:pointer;transition:all .18s;box-shadow:var(--shadow);}
+.summary-badge:hover{opacity:.8;} .summary-badge.active{box-shadow:0 0 0 2.5px currentColor;}
+.badge-all{border-color:var(--border);color:var(--t2);background:var(--surface);}
+.badge-overdue{border-color:var(--red-bdr);color:var(--red);background:var(--red-bg);}
+.badge-soon{border-color:var(--amber-bdr);color:var(--amber);background:var(--amber-bg);}
+.badge-ok{border-color:var(--green-bdr);color:var(--green);background:var(--green-bg);}
+.badge-never{border-color:var(--gold-dim);color:var(--gold);background:var(--gold-bg);}
+.review-list{padding:0 12px 60px;max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:6px;}
+.review-card{border-radius:var(--radius);padding:13px 16px;display:flex;align-items:center;gap:13px;background:var(--surface);box-shadow:var(--shadow);transition:all .18s;animation:fadeUp .2s ease;}
+.review-card.status-overdue{background:var(--red-bg);border:1.5px solid var(--red-bdr);border-left:4px solid var(--red);}
+.review-card.status-soon{background:var(--amber-bg);border:1.5px solid var(--amber-bdr);border-left:4px solid var(--amber);}
+.review-card.status-ok{background:var(--green-bg);border:1.5px solid var(--green-bdr);border-left:4px solid var(--green);}
+.review-card.status-never{background:var(--gold-bg);border:1.5px solid var(--gold-dim);border-left:4px solid var(--gold);}
+.review-info{flex:1;min-width:0;}
+.review-name{font-size:18px;font-weight:600;color:var(--t1);}
+.review-arabic{font-family:'Amiri',serif;font-size:20px;color:var(--t2);direction:rtl;}
+.review-meta{font-size:13px;color:var(--t3);margin-top:1px;font-style:italic;}
+.status-tag{border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;letter-spacing:.05em;flex-shrink:0;text-align:center;white-space:nowrap;}
+.tag-overdue{background:rgba(184,50,50,.14);color:var(--red);}
+.tag-soon{background:rgba(156,98,8,.14);color:var(--amber);}
+.tag-ok{background:rgba(26,112,64,.12);color:var(--green);}
+.tag-never{background:var(--gold-bg);color:var(--gold);}
+.review-now-btn{background:var(--surface);border:1.5px solid var(--gold-dim);border-radius:20px;color:var(--gold);padding:6px 14px;font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .18s;box-shadow:var(--shadow);}
+.review-now-btn:hover{background:var(--gold);color:#fff;border-color:var(--gold);}
+.section-divider{padding:10px 12px 4px;max-width:680px;margin:0 auto;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);}
+.notif-banner{max-width:656px;margin:0 auto 10px;background:var(--amber-bg);border:1.5px solid var(--amber-bdr);border-radius:var(--radius);padding:9px 14px;font-size:14px;color:var(--amber);text-align:center;font-style:italic;}
+.empty-state{text-align:center;padding:50px 20px;color:var(--t2);font-style:italic;font-size:17px;}
+.empty-state .icon{font-size:40px;margin-bottom:12px;}
+
+/* ══ KHATMA TAB ══════════════════════════════════════════════════ */
+
+/* Top action bar */
+.khatma-topbar{max-width:680px;margin:0 auto;padding:20px 16px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.khatma-topbar-title{font-family:'Amiri',serif;font-size:22px;color:var(--gold);direction:rtl;}
+.khatma-start-btn{
+  background:linear-gradient(135deg,var(--gold-md),var(--gold-hi));
+  color:#fff;border:none;border-radius:30px;
+  padding:11px 28px;font-family:'Amiri',serif;
+  font-size:19px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 16px rgba(139,105,20,.28);
+  transition:transform .18s,box-shadow .18s;direction:rtl;
+}
+.khatma-start-btn:hover{transform:translateY(-2px);box-shadow:0 7px 24px rgba(139,105,20,.36);}
+
+/* Individual khatma block */
+.khatma-block{
+  max-width:680px;margin:0 auto 20px;padding:0 12px;
+}
+.khatma-block-header{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--radius) var(--radius) 0 0;
+  padding:14px 18px;display:flex;align-items:flex-start;gap:14px;
+  border-bottom:none;box-shadow:var(--shadow);
+}
+.khatma-badge{
+  background:var(--gold-bg);border:1.5px solid var(--gold-dim);
+  color:var(--gold);border-radius:8px;padding:3px 10px;
+  font-size:13px;font-weight:700;letter-spacing:.05em;
+  white-space:nowrap;flex-shrink:0;
+  font-family:'Amiri',serif;direction:rtl;
+}
+.khatma-block-info{flex:1;min-width:0;}
+.khatma-block-dates{font-size:15px;color:var(--t2);font-style:italic;direction:rtl;line-height:1.7;}
+
+/* Stats inside a block */
+.khatma-stats-row{display:flex;gap:8px;flex-wrap:wrap;background:var(--surface);border:1.5px solid var(--border);border-top:1px solid var(--border-lt);padding:12px 16px;border-bottom:none;}
+.khatma-stat-box{flex:1;min-width:90px;text-align:center;padding:8px 6px;}
+.khatma-stat-value{font-size:24px;font-weight:700;color:var(--gold);line-height:1;}
+.khatma-stat-label{font-size:12px;color:var(--t2);font-style:italic;margin-top:3px;direction:rtl;}
+
+/* Progress bar inside a block */
+.khatma-prog-wrap{background:var(--surface);border:1.5px solid var(--border);border-top:1px solid var(--border-lt);padding:12px 18px;border-bottom:none;}
+.khatma-prog-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+.khatma-prog-label span:first-child{font-size:15px;font-weight:600;color:var(--t1);}
+.khatma-prog-label span:last-child{font-size:13px;color:var(--t2);font-style:italic;}
+.khatma-bar-track{height:12px;background:var(--page);border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-bottom:5px;}
+.khatma-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold-md),var(--gold-hi));border-radius:7px;transition:width .45s ease;min-width:0;}
+.khatma-bar-pct{text-align:right;font-size:13px;color:var(--gold);font-weight:700;}
+
+/* Action row */
+.khatma-action-row{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-top:1px solid var(--border-lt);
+  padding:10px 16px;
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  border-radius:0 0 var(--radius) var(--radius);
+  box-shadow:var(--shadow);
+}
+.khatma-complete-btn{
+  background:linear-gradient(135deg,#1a7040,#228b52);
+  color:#fff;border:none;border-radius:24px;
+  padding:8px 20px;font-family:'Amiri',serif;
+  font-size:17px;font-weight:700;cursor:pointer;
+  box-shadow:0 3px 12px rgba(26,112,64,.25);
+  transition:transform .18s;direction:rtl;
+}
+.khatma-complete-btn:hover{transform:translateY(-1px);}
+.khatma-delete-btn{
+  background:var(--surface);color:var(--red);
+  border:1.5px solid var(--red-bdr);border-radius:24px;
+  padding:8px 18px;font-family:'Cormorant Garamond',serif;
+  font-size:15px;cursor:pointer;transition:all .18s;margin-left:auto;
+}
+.khatma-delete-btn:hover{background:var(--red-bg);border-color:var(--red);}
+
+/* Surah sliders inside a block — no outer box, just stacked */
+.khatma-surah-list{display:flex;flex-direction:column;gap:5px;padding:2px 0 0;}
+.khatma-surah-card{
+  background:var(--surface);border:1.5px solid var(--border-lt);
+  border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);
+  animation:fadeUp .15s ease;
+}
+.khatma-surah-card.done{border-left:4px solid var(--green);background:rgba(26,112,64,.03);}
+.khatma-surah-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.khatma-surah-info{flex:1;min-width:0;}
+.khatma-surah-name{font-size:18px;font-weight:600;color:var(--t1);}
+.khatma-surah-arabic{font-family:'Amiri',serif;font-size:20px;color:var(--t2);direction:rtl;}
+.khatma-surah-count{font-size:16px;font-weight:700;color:var(--gold-md);white-space:nowrap;min-width:72px;text-align:right;}
+.khatma-surah-count.full{color:var(--green);}
+.khatma-check-btn{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:8px;
+  width:36px;height:36px;font-size:19px;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .18s;padding:0;
+}
+.khatma-check-btn:hover:not(.done){background:var(--green-bg);border-color:var(--green-bdr);}
+.khatma-check-btn.done{border-color:var(--green-bdr);background:var(--green-bg);cursor:pointer;}
+
+/* Success toast */
+.khatma-toast{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:linear-gradient(135deg,#1a7040,#228b52);color:#fff;
+  border-radius:30px;padding:14px 28px;font-family:'Amiri',serif;font-size:20px;
+  direction:rtl;box-shadow:0 8px 28px rgba(26,112,64,.35);
+  z-index:2000;transition:transform .4s cubic-bezier(.34,1.56,.64,1),opacity .4s;
+  opacity:0;white-space:nowrap;
+}
+.khatma-toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.khatma-slider-wrap{display:flex;align-items:center;gap:10px;}
+.khatma-slider{-webkit-appearance:none;appearance:none;flex:1;height:7px;border-radius:5px;background:var(--page);border:1px solid var(--border);outline:none;cursor:pointer;}
+.khatma-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--gold);cursor:pointer;border:3px solid #fff;box-shadow:0 1px 6px rgba(139,105,20,.40);transition:transform .15s;}
+.khatma-slider::-webkit-slider-thumb:hover{transform:scale(1.18);}
+.khatma-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--gold);cursor:pointer;border:3px solid #fff;}
+.slider-zero,.slider-max{font-size:12px;color:var(--t3);min-width:22px;}
+.slider-max{text-align:right;}
+
+/* History */
+.khatma-history{padding:0 12px 40px;max-width:680px;margin:0 auto;}
+.khatma-history-title{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);padding:14px 0 10px;border-top:1.5px solid var(--border-lt);}
+.khatma-history-card{background:var(--surface);border:1.5px solid var(--border-lt);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);margin-bottom:6px;}
+.khatma-history-num{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--gold-dim);background:var(--gold-bg);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:var(--gold);flex-shrink:0;}
+.khatma-history-info{flex:1;}
+.khatma-history-dates{font-size:16px;font-weight:600;color:var(--t1);}
+.khatma-history-dur{font-size:14px;color:var(--t2);font-style:italic;margin-top:2px;direction:rtl;}
+.khatma-history-badge{background:var(--green-bg);border:1.5px solid var(--green-bdr);color:var(--green);border-radius:20px;padding:5px 14px;font-size:14px;font-weight:600;white-space:nowrap;}
+
+/* No-khatma empty */
+.khatma-empty{text-align:center;padding:40px 20px 20px;color:var(--t2);max-width:480px;margin:0 auto;}
+.khatma-empty .icon{font-size:48px;margin-bottom:14px;}
+.khatma-empty-title{font-family:'Amiri',serif;font-size:24px;color:var(--t1);direction:rtl;margin-bottom:6px;}
+.khatma-empty-sub{font-size:15px;color:var(--t2);font-style:italic;direction:rtl;}
+
+/* ══ IN-PAGE CONFIRM MODAL ══════════════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(26,21,8,0.55);
+  z-index:1000;display:none;align-items:center;justify-content:center;
+  padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal-box{
+  background:var(--surface);border:2px solid var(--border);
+  border-radius:16px;padding:28px 28px 22px;max-width:360px;width:100%;
+  box-shadow:0 12px 40px rgba(26,21,8,0.25);text-align:center;
+}
+.modal-icon{font-size:36px;margin-bottom:10px;}
+.modal-msg{
+  font-family:'Amiri',serif;font-size:20px;color:var(--t1);
+  direction:rtl;line-height:1.55;margin-bottom:22px;
+}
+.modal-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.modal-btn-yes{
+  background:var(--red);color:#fff;border:none;border-radius:24px;
+  padding:9px 28px;font-family:'Amiri',serif;font-size:18px;
+  font-weight:700;cursor:pointer;transition:opacity .18s;direction:rtl;
+}
+.modal-btn-yes:hover{opacity:.85;}
+.modal-btn-no{
+  background:var(--surface);color:var(--t2);border:1.5px solid var(--border);
+  border-radius:24px;padding:9px 28px;
+  font-family:'Cormorant Garamond',serif;font-size:16px;
+  cursor:pointer;transition:all .18s;
+}
+.modal-btn-no:hover{background:var(--page);}
+
+/* ── FOOTER ─────────────────────────────────────────────────── */
+footer{margin-top:auto;text-align:center;padding:14px 20px;border-top:1.5px solid var(--border);background:var(--surface);}
+.footer-text{font-family:'Amiri',serif;font-size:20px;color:var(--gold);direction:rtl;letter-spacing:.05em;}
+
+/* ── SYNC STATUS ────────────────────────────────────────────── */
+.sync-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:5px 16px;background:var(--surface);border-bottom:1px solid var(--border-lt);font-size:13px;font-style:italic;}
+.sync-status{font-weight:600;letter-spacing:.03em;}
+.sync-synced{color:#1a7040;}
+.sync-loading{color:#9c6208;}
+.sync-error{color:#b83232;}
+.sync-offline{color:#a08858;}
+.sync-setup{color:#9c6208;}
+.setup-link{color:var(--gold-md);text-decoration:underline;cursor:pointer;font-size:13px;background:none;border:none;font-family:'Cormorant Garamond',serif;font-style:italic;}
+
+/* ── SETUP MODAL ────────────────────────────────────────────── */
+.setup-overlay{position:fixed;inset:0;background:rgba(26,21,8,0.65);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;}
+.setup-overlay.open{display:flex;}
+.setup-box{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:28px 28px 22px;max-width:400px;width:100%;box-shadow:0 12px 40px rgba(26,21,8,0.25);}
+.setup-title{font-family:'Amiri',serif;font-size:22px;color:var(--gold);direction:rtl;text-align:center;margin-bottom:18px;}
+.setup-field{margin-bottom:14px;}
+.setup-field label{display:block;font-size:14px;color:var(--t2);margin-bottom:5px;font-style:italic;}
+.setup-field input{width:100%;background:var(--page);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--t1);font-family:'Cormorant Garamond',serif;font-size:15px;outline:none;transition:border-color .2s;}
+.setup-field input:focus{border-color:var(--gold-md);}
+.setup-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;}
+.setup-btn-save{background:linear-gradient(135deg,var(--gold-md),var(--gold-hi));color:#fff;border:none;border-radius:24px;padding:9px 28px;font-family:'Amiri',serif;font-size:17px;font-weight:700;cursor:pointer;}
+.setup-btn-cancel{background:var(--surface);color:var(--t2);border:1.5px solid var(--border);border-radius:24px;padding:9px 22px;font-family:'Cormorant Garamond',serif;font-size:15px;cursor:pointer;}
+.setup-hint{font-size:12px;color:var(--t3);font-style:italic;margin-top:12px;line-height:1.6;text-align:center;}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════ -->
+<header>
+  <div class="header-title">حافظ · Quran Tracker</div>
+  <div class="header-subtitle">متابعة الحفظ والمراجعة والختمة</div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('memorization',this)">📚 Memorization</button>
+    <button class="tab-btn"        onclick="switchTab('review',this)">🔁 Review</button>
+    <button class="tab-btn"        onclick="switchTab('khatma',this)">📖 ختمة</button>
+  </div>
+</header>
+
+<!-- ══ SYNC BAR ════════════════════════════════════════════════ -->
+<div class="sync-bar" aria-live="polite">
+  <span id="sync-status" class="sync-status sync-loading">⟳ Connecting…</span>
+  <button class="setup-link" id="sync-action-btn" onclick="handleSyncAction()" title="Sign in to sync">☁ Sign in to sync</button>
+</div>
+
+<!-- ══ GOOGLE SIGN-IN MODAL ════════════════════════════════════ -->
+<div class="setup-overlay" id="setup-overlay">
+  <div class="setup-box">
+    <div class="setup-title">☁ مزامنة Google</div>
+    <p style="text-align:center;color:var(--t2);font-size:15px;margin-bottom:20px;font-style:italic;">
+      Sign in with Google to sync your Hafiz data across devices.
+    </p>
+    <div style="display:flex;justify-content:center;margin-bottom:16px;">
+      <div id="g-signin-btn"></div>
+    </div>
+    <div class="setup-btns">
+      <button class="setup-btn-cancel" onclick="closeSetup()">إلغاء</button>
+    </div>
+    <div class="setup-hint">
+      Your data is stored privately in your own Google Sheet.<br>
+      No one else can access it.
+    </div>
+  </div>
+</div>
+
+<!-- ══ MEMORIZATION ════════════════════════════════════════════ -->
+<div id="tab-memorization" class="tab-panel active">
+  <div class="mem-hero">
+    <div class="progress-ring-wrap">
+      <div class="progress-ring">
+        <svg viewBox="0 0 136 136">
+          <circle class="track" cx="68" cy="68" r="58"/>
+          <circle class="fill" id="ring-fill" cx="68" cy="68" r="58"
+            stroke-dasharray="364.4" stroke-dashoffset="364.4"/>
+        </svg>
+        <div class="progress-center">
+          <div class="progress-count" id="mem-count">0</div>
+          <div class="progress-total">of 114</div>
+        </div>
+      </div>
+      <div class="progress-pct" id="mem-pct">0% memorized</div>
+    </div>
+  </div>
+  <div class="toolbar">
+    <input class="search-input" id="mem-search" placeholder="Search surah…" oninput="renderMemTab()">
+    <div class="filter-chips">
+      <button class="chip active" id="chip-all" onclick="setMemFilter('all')">All</button>
+      <button class="chip"        id="chip-yes" onclick="setMemFilter('yes')">Memorized</button>
+      <button class="chip"        id="chip-no"  onclick="setMemFilter('no')">Remaining</button>
+    </div>
+  </div>
+  <div class="surah-list" id="mem-list"></div>
+</div>
+
+<!-- ══ REVIEW ══════════════════════════════════════════════════ -->
+<div id="tab-review" class="tab-panel">
+  <div class="review-header">
+    <div class="review-controls">
+      <div class="cycle-picker">
+        <span class="cycle-label">Review every</span>
+        <button class="cycle-btn" id="btn-7"  onclick="setCycle(7)">7 days</button>
+        <button class="cycle-btn" id="btn-10" onclick="setCycle(10)">10 days</button>
+      </div>
+      <button class="notif-btn" id="notif-btn" onclick="requestNotif()">🔔 Enable Notifications</button>
+    </div>
+    <div class="summary-row" id="summary-row"></div>
+  </div>
+  <div id="notif-banner-wrap"></div>
+  <div class="review-list" id="review-list"></div>
+</div>
+
+<!-- ══ KHATMA ══════════════════════════════════════════════════ -->
+<div id="tab-khatma" class="tab-panel">
+  <div id="khatma-content"></div>
+</div>
+
+<!-- ══ CONFIRM MODAL ══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-msg" id="modal-msg"></div>
+    <div class="modal-btns">
+      <button class="modal-btn-yes" id="modal-btn-yes">نعم، احذف</button>
+      <button class="modal-btn-no"  onclick="modalNo()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<footer><div class="footer-text">صدقة جارية</div></footer>
+
+<script>
+/* ══ SURAH DATA ════════════════════════════════════════════════ */
+const SURAHS=[
+  {id:1,  name:"Al-Fatiha",       ar:"الفاتحة",     v:7},
+  {id:2,  name:"Al-Baqarah",      ar:"البقرة",      v:286},
+  {id:3,  name:"Ali 'Imran",      ar:"آل عمران",    v:200},
+  {id:4,  name:"An-Nisa",         ar:"النساء",      v:176},
+  {id:5,  name:"Al-Ma'idah",      ar:"المائدة",     v:120},
+  {id:6,  name:"Al-An'am",        ar:"الأنعام",     v:165},
+  {id:7,  name:"Al-A'raf",        ar:"الأعراف",     v:206},
+  {id:8,  name:"Al-Anfal",        ar:"الأنفال",     v:75},
+  {id:9,  name:"At-Tawbah",       ar:"التوبة",      v:129},
+  {id:10, name:"Yunus",           ar:"يونس",        v:109},
+  {id:11, name:"Hud",             ar:"هود",         v:123},
+  {id:12, name:"Yusuf",           ar:"يوسف",        v:111},
+  {id:13, name:"Ar-Ra'd",         ar:"الرعد",       v:43},
+  {id:14, name:"Ibrahim",         ar:"إبراهيم",     v:52},
+  {id:15, name:"Al-Hijr",         ar:"الحجر",       v:99},
+  {id:16, name:"An-Nahl",         ar:"النحل",       v:128},
+  {id:17, name:"Al-Isra",         ar:"الإسراء",     v:111},
+  {id:18, name:"Al-Kahf",         ar:"الكهف",       v:110},
+  {id:19, name:"Maryam",          ar:"مريم",        v:98},
+  {id:20, name:"Ta-Ha",           ar:"طه",          v:135},
+  {id:21, name:"Al-Anbya",        ar:"الأنبياء",    v:112},
+  {id:22, name:"Al-Hajj",         ar:"الحج",        v:78},
+  {id:23, name:"Al-Mu'minun",     ar:"المؤمنون",    v:118},
+  {id:24, name:"An-Nur",          ar:"النور",       v:64},
+  {id:25, name:"Al-Furqan",       ar:"الفرقان",     v:77},
+  {id:26, name:"Ash-Shu'ara",     ar:"الشعراء",     v:227},
+  {id:27, name:"An-Naml",         ar:"النمل",       v:93},
+  {id:28, name:"Al-Qasas",        ar:"القصص",       v:88},
+  {id:29, name:"Al-Ankabut",      ar:"العنكبوت",    v:69},
+  {id:30, name:"Ar-Rum",          ar:"الروم",       v:60},
+  {id:31, name:"Luqman",          ar:"لقمان",       v:34},
+  {id:32, name:"As-Sajdah",       ar:"السجدة",      v:30},
+  {id:33, name:"Al-Ahzab",        ar:"الأحزاب",     v:73},
+  {id:34, name:"Saba",            ar:"سبأ",         v:54},
+  {id:35, name:"Fatir",           ar:"فاطر",        v:45},
+  {id:36, name:"Ya-Sin",          ar:"يس",          v:83},
+  {id:37, name:"As-Saffat",       ar:"الصافات",     v:182},
+  {id:38, name:"Sad",             ar:"ص",           v:88},
+  {id:39, name:"Az-Zumar",        ar:"الزمر",       v:75},
+  {id:40, name:"Ghafir",          ar:"غافر",        v:85},
+  {id:41, name:"Fussilat",        ar:"فصلت",        v:54},
+  {id:42, name:"Ash-Shuraa",      ar:"الشورى",      v:53},
+  {id:43, name:"Az-Zukhruf",      ar:"الزخرف",      v:89},
+  {id:44, name:"Ad-Dukhan",       ar:"الدخان",      v:59},
+  {id:45, name:"Al-Jathiyah",     ar:"الجاثية",     v:37},
+  {id:46, name:"Al-Ahqaf",        ar:"الأحقاف",     v:35},
+  {id:47, name:"Muhammad",        ar:"محمد",        v:38},
+  {id:48, name:"Al-Fath",         ar:"الفتح",       v:29},
+  {id:49, name:"Al-Hujurat",      ar:"الحجرات",     v:18},
+  {id:50, name:"Qaf",             ar:"ق",           v:45},
+  {id:51, name:"Adh-Dhariyat",    ar:"الذاريات",    v:60},
+  {id:52, name:"At-Tur",          ar:"الطور",       v:49},
+  {id:53, name:"An-Najm",         ar:"النجم",       v:62},
+  {id:54, name:"Al-Qamar",        ar:"القمر",       v:55},
+  {id:55, name:"Ar-Rahman",       ar:"الرحمن",      v:78},
+  {id:56, name:"Al-Waqi'ah",      ar:"الواقعة",     v:96},
+  {id:57, name:"Al-Hadid",        ar:"الحديد",      v:29},
+  {id:58, name:"Al-Mujadila",     ar:"المجادلة",    v:22},
+  {id:59, name:"Al-Hashr",        ar:"الحشر",       v:24},
+  {id:60, name:"Al-Mumtahanah",   ar:"الممتحنة",    v:13},
+  {id:61, name:"As-Saf",          ar:"الصف",        v:14},
+  {id:62, name:"Al-Jumu'ah",      ar:"الجمعة",      v:11},
+  {id:63, name:"Al-Munafiqun",    ar:"المنافقون",   v:11},
+  {id:64, name:"At-Taghabun",     ar:"التغابن",     v:18},
+  {id:65, name:"At-Talaq",        ar:"الطلاق",      v:12},
+  {id:66, name:"At-Tahrim",       ar:"التحريم",     v:12},
+  {id:67, name:"Al-Mulk",         ar:"الملك",       v:30},
+  {id:68, name:"Al-Qalam",        ar:"القلم",       v:52},
+  {id:69, name:"Al-Haqqah",       ar:"الحاقة",      v:52},
+  {id:70, name:"Al-Ma'arij",      ar:"المعارج",     v:44},
+  {id:71, name:"Nuh",             ar:"نوح",         v:28},
+  {id:72, name:"Al-Jinn",         ar:"الجن",        v:28},
+  {id:73, name:"Al-Muzzammil",    ar:"المزمل",      v:20},
+  {id:74, name:"Al-Muddaththir",  ar:"المدثر",      v:56},
+  {id:75, name:"Al-Qiyamah",      ar:"القيامة",     v:40},
+  {id:76, name:"Al-Insan",        ar:"الإنسان",     v:31},
+  {id:77, name:"Al-Mursalat",     ar:"المرسلات",    v:50},
+  {id:78, name:"An-Naba",         ar:"النبأ",       v:40},
+  {id:79, name:"An-Nazi'at",      ar:"النازعات",    v:46},
+  {id:80, name:"Abasa",           ar:"عبس",         v:42},
+  {id:81, name:"At-Takwir",       ar:"التكوير",     v:29},
+  {id:82, name:"Al-Infitar",      ar:"الانفطار",    v:19},
+  {id:83, name:"Al-Mutaffifin",   ar:"المطففين",    v:36},
+  {id:84, name:"Al-Inshiqaq",     ar:"الانشقاق",    v:25},
+  {id:85, name:"Al-Buruj",        ar:"البروج",      v:22},
+  {id:86, name:"At-Tariq",        ar:"الطارق",      v:17},
+  {id:87, name:"Al-A'la",         ar:"الأعلى",      v:19},
+  {id:88, name:"Al-Ghashiyah",    ar:"الغاشية",     v:26},
+  {id:89, name:"Al-Fajr",         ar:"الفجر",       v:30},
+  {id:90, name:"Al-Balad",        ar:"البلد",       v:20},
+  {id:91, name:"Ash-Shams",       ar:"الشمس",       v:15},
+  {id:92, name:"Al-Layl",         ar:"الليل",       v:21},
+  {id:93, name:"Ad-Duha",         ar:"الضحى",       v:11},
+  {id:94, name:"Ash-Sharh",       ar:"الشرح",       v:8},
+  {id:95, name:"At-Tin",          ar:"التين",       v:8},
+  {id:96, name:"Al-Alaq",         ar:"العلق",       v:19},
+  {id:97, name:"Al-Qadr",         ar:"القدر",       v:5},
+  {id:98, name:"Al-Bayyinah",     ar:"البينة",      v:8},
+  {id:99, name:"Az-Zalzalah",     ar:"الزلزلة",     v:8},
+  {id:100,name:"Al-Adiyat",       ar:"العاديات",    v:11},
+  {id:101,name:"Al-Qari'ah",      ar:"القارعة",     v:11},
+  {id:102,name:"At-Takathur",     ar:"التكاثر",     v:8},
+  {id:103,name:"Al-Asr",          ar:"العصر",       v:3},
+  {id:104,name:"Al-Humazah",      ar:"الهمزة",      v:9},
+  {id:105,name:"Al-Fil",          ar:"الفيل",       v:5},
+  {id:106,name:"Quraysh",         ar:"قريش",        v:4},
+  {id:107,name:"Al-Ma'un",        ar:"الماعون",     v:7},
+  {id:108,name:"Al-Kawthar",      ar:"الكوثر",      v:3},
+  {id:109,name:"Al-Kafirun",      ar:"الكافرون",    v:6},
+  {id:110,name:"An-Nasr",         ar:"النصر",       v:3},
+  {id:111,name:"Al-Masad",        ar:"المسد",       v:5},
+  {id:112,name:"Al-Ikhlas",       ar:"الإخلاص",     v:4},
+  {id:113,name:"Al-Falaq",        ar:"الفلق",       v:5},
+  {id:114,name:"An-Nas",          ar:"الناس",       v:6},
+];
+const TOTAL_VERSES=SURAHS.reduce((s,x)=>s+x.v,0); // 6236
+
+/* ══ STATE ════════════════════════════════════════════════════ */
+const SK='hafiz_v4';
+let state={
+  memorized:[],
+  reviews:{},
+  reviewDays:7,
+  khatma:{
+    active:[],   // array of { id, startDate, verses:{} }
+    history:[]   // array of { startDate, endDate, durationDays }
+  }
+};
+let memFilter='all', revFilter='all';
+
+/* ══ GOOGLE SHEETS SYNC ═══════════════════════════════════════ */
+const CLIENT_ID   = '213460990085-61aec0mlg5fnb0svsilvdu7fvfmsmnci.apps.googleusercontent.com';
+const SHEET_ID    = '11mCm_A2vTMqyccDSar8lh8hU0jn7jtb7NFSgta1cn2E';
+const SHEET_RANGE = 'Sheet1!A1';
+const SCOPES      = 'https://www.googleapis.com/auth/spreadsheets';
+
+let _accessToken = null;
+let _tokenClient = null;
+let _gapiReady   = false;
+let _gisReady    = false;
+
+/* ── Status helpers ─────────────────────────────────────────── */
+function showSyncStatus(s, msg=''){
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  const map = {
+    loading : '⟳ Syncing…',
+    synced  : '✅ Synced',
+    error   : '⚠ ' + msg,
+    offline : '📵 Offline',
+    setup   : '☁ Not signed in'
+  };
+  el.textContent = map[s] || s;
+  el.className   = 'sync-status sync-' + s;
+}
+
+function updateSyncBtn(){
+  const btn = document.getElementById('sync-action-btn');
+  if(!btn) return;
+  if(_accessToken){
+    btn.textContent = '↩ Sign out';
+    btn.title       = 'Sign out of Google sync';
+  } else {
+    btn.textContent = '☁ Sign in to sync';
+    btn.title       = 'Sign in with Google to sync';
+  }
+}
+
+function handleSyncAction(){
+  if(_accessToken){ signOut(); }
+  else             { openSetup(); }
+}
+
+function openSetup(){
+  document.getElementById('setup-overlay').classList.add('open');
+  // Render the Google sign-in button inside the modal
+  if(window.google?.accounts?.id){
+    google.accounts.id.renderButton(
+      document.getElementById('g-signin-btn'),
+      { theme:'outline', size:'large', text:'signin_with', shape:'pill', width:280 }
+    );
+  }
+}
+function closeSetup(){ document.getElementById('setup-overlay').classList.remove('open'); }
+
+function signOut(){
+  _accessToken = null;
+  localStorage.removeItem('hafiz_gtoken');
+  showSyncStatus('setup');
+  updateSyncBtn();
+}
+
+/* ── Library loading ────────────────────────────────────────── */
+function gapiLoaded(){
+  gapi.load('client', async ()=>{
+    await gapi.client.init({});
+    await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
+    _gapiReady = true;
+    maybeAutoSync();
+  });
+}
+function gisLoaded(){
+  _tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id : CLIENT_ID,
+    scope     : SCOPES,
+    callback  : async (resp)=>{
+      if(resp.error){ showSyncStatus('error', resp.error); return; }
+      _accessToken = resp.access_token;
+      localStorage.setItem('hafiz_gtoken', _accessToken);
+      closeSetup();
+      updateSyncBtn();
+      await loadFromCloud();
+    }
+  });
+  _gisReady = true;
+
+  // One Tap / auto sign-in prompt
+  google.accounts.id.initialize({
+    client_id        : CLIENT_ID,
+    callback         : handleCredential,
+    auto_select      : true,
+    cancel_on_tap_outside: false
+  });
+
+  maybeAutoSync();
+}
+
+/* Handle One Tap credential → exchange for access token */
+function handleCredential(response){
+  // One Tap gives an id_token; we still need an access token for Sheets.
+  // Request it silently.
+  if(_tokenClient){
+    _tokenClient.requestAccessToken({ prompt:'' });
+  }
+}
+
+function maybeAutoSync(){
+  if(!_gapiReady || !_gisReady) return;
+  // Try silent token refresh first
+  if(_tokenClient){
+    _tokenClient.requestAccessToken({ prompt:'' });
+  }
+  showSyncStatus('setup');
+  updateSyncBtn();
+}
+
+/* ── Read / write ────────────────────────────────────────────── */
+let _saveTimer = null;
+function scheduleSave(){ clearTimeout(_saveTimer); _saveTimer = setTimeout(syncToCloud, 900); }
+
+async function syncToCloud(){
+  if(!_accessToken || !_gapiReady){ showSyncStatus('offline'); return; }
+  showSyncStatus('loading');
+  try{
+    gapi.client.setToken({ access_token: _accessToken });
+    const json = JSON.stringify(state);
+    await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId : SHEET_ID,
+      range         : SHEET_RANGE,
+      valueInputOption: 'RAW',
+      resource      : { values: [[json]] }
+    });
+    localStorage.setItem(SK, JSON.stringify(state));
+    showSyncStatus('synced');
+  } catch(e){
+    // Token may have expired
+    if(e.status === 401){ _accessToken = null; showSyncStatus('setup'); updateSyncBtn(); }
+    else { showSyncStatus('error', e.result?.error?.message || e.message || 'Unknown error'); }
+  }
+}
+
+async function loadFromCloud(){
+  if(!_accessToken || !_gapiReady){ showSyncStatus('setup'); return; }
+  showSyncStatus('loading');
+  try{
+    gapi.client.setToken({ access_token: _accessToken });
+    const resp = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId : SHEET_ID,
+      range         : SHEET_RANGE
+    });
+    const val = resp.result?.values?.[0]?.[0];
+    if(val){
+      const parsed = JSON.parse(val);
+      applyState(parsed);
+      localStorage.setItem(SK, JSON.stringify(state));
+    } else {
+      // Sheet is empty — seed it with local state
+      await syncToCloud();
+    }
+    showSyncStatus('synced');
+  } catch(e){
+    if(e.status === 401){ _accessToken = null; showSyncStatus('setup'); updateSyncBtn(); }
+    else { showSyncStatus('error', e.result?.error?.message || e.message || 'Unknown error'); }
+  }
+  renderAll();
+}
+
+/* Expose for gapi/gis onload callbacks */
+window.gapiLoaded = gapiLoaded;
+window.gisLoaded  = gisLoaded;
+
+/* Trigger sign-in popup (called from modal button via renderButton) */
+function requestToken(){
+  if(!_tokenClient){ showSyncStatus('error','Not ready yet'); return; }
+  _tokenClient.requestAccessToken({ prompt:'consent' });
+}
+
+/* ══ LOCAL STATE ══════════════════════════════════════════════ */
+function applyState(p){
+  state.memorized =p.memorized ||[];
+  state.reviews   =p.reviews   ||{};
+  state.reviewDays=p.reviewDays||7;
+  if(p.khatma){
+    state.khatma.active =Array.isArray(p.khatma.active)?p.khatma.active:p.khatma.active?[migrate(p.khatma.active)]:[];
+    state.khatma.history=p.khatma.history||[];
+  }
+}
+
+function load(){
+  try{
+    // try v4 local cache first (shown while cloud loads)
+    let raw=localStorage.getItem(SK);
+    if(raw){applyState(JSON.parse(raw));return;}
+    // try v3
+    raw=localStorage.getItem('hafiz_v3');
+    if(raw){applyState(JSON.parse(raw));return;}
+    // try v2
+    raw=localStorage.getItem('hafiz_v2');
+    if(raw){const p=JSON.parse(raw);state.memorized=p.memorized||[];state.reviews=p.reviews||{};state.reviewDays=p.reviewDays||7;}
+  }catch(e){}
+}
+function migrate(obj){return{id:obj.startDate||Date.now().toString(),startDate:obj.startDate,verses:obj.verses||{}};}
+function save(){
+  localStorage.setItem(SK,JSON.stringify(state));
+  scheduleSave();
+}
+function renderAll(){
+  renderMemTab();
+  if(document.getElementById('tab-review').classList.contains('active'))renderRevTab();
+  if(document.getElementById('tab-khatma').classList.contains('active'))renderKhatmaTab();
+  document.getElementById('btn-7').classList.toggle('active',state.reviewDays===7);
+  document.getElementById('btn-10').classList.toggle('active',state.reviewDays===10);
+}
+
+/* ══ HELPERS ══════════════════════════════════════════════════ */
+function isMem(id){return state.memorized.includes(id);}
+const MS=86400000;
+function reviewStatus(id){
+  if(!isMem(id))return'unmemorized';
+  const r=state.reviews[id];if(!r?.lastReviewed)return'never';
+  const diff=new Date(r.lastReviewed).getTime()+state.reviewDays*MS-Date.now();
+  return diff<0?'overdue':diff<48*3600000?'soon':'ok';
+}
+function daysOverdue(id){const r=state.reviews[id];if(!r?.lastReviewed)return 0;return(Date.now()-new Date(r.lastReviewed).getTime()-state.reviewDays*MS)/MS;}
+function daysLeft(id)   {const r=state.reviews[id];if(!r?.lastReviewed)return 0;return(new Date(r.lastReviewed).getTime()+state.reviewDays*MS-Date.now())/MS;}
+function daysSince(iso) {return(Date.now()-new Date(iso).getTime())/MS;}
+
+function fmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function fmtDateTime(iso){
+  if(!iso)return'—';
+  const d=new Date(iso);
+  const date=d.toLocaleDateString('ar-EG-u-nu-latn',{day:'numeric',month:'long',year:'numeric'});
+  const time=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  return date+' الساعة '+time;
+}
+function fmtDateAr(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('ar-EG-u-nu-latn',{day:'numeric',month:'short',year:'numeric'});}
+function fmtDays(days){
+  if(days<1)  return'أقل من يوم';
+  if(days<2)  return'يوم واحد';
+  if(days<7)  return Math.round(days)+' أيام';
+  if(days<14) return'أسبوع واحد';
+  if(days<30) return Math.round(days/7)+' أسابيع';
+  if(days<60) return'شهر واحد';
+  if(days<365)return Math.round(days/30)+' أشهر';
+  const y=Math.floor(days/365),m=Math.round((days%365)/30);
+  return(y===1?'سنة واحدة':y+' سنوات')+(m>0?' و'+m+' أشهر':'');
+}
+const ORDINALS=['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة','الثامنة','التاسعة','العاشرة'];
+function ordinal(n){return ORDINALS[n-1]||('#'+n);}
+
+/* ══ IN-PAGE MODAL ════════════════════════════════════════════ */
+let _modalCb=null;
+function showModal(msg,onYes){
+  _modalCb=onYes;
+  document.getElementById('modal-msg').textContent=msg;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('modal-btn-yes').onclick=modalYes;
+}
+function modalYes(){document.getElementById('modal-overlay').classList.remove('open');if(_modalCb){_modalCb();_modalCb=null;}}
+function modalNo() {document.getElementById('modal-overlay').classList.remove('open');_modalCb=null;}
+
+/* ══ TABS ════════════════════════════════════════════════════ */
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  btn.classList.add('active');
+  if(tab==='memorization')renderMemTab();
+  if(tab==='review')      renderRevTab();
+  if(tab==='khatma')      renderKhatmaTab();
+}
+
+/* ══ MEMORIZATION ════════════════════════════════════════════ */
+function setMemFilter(f){memFilter=f;['all','yes','no'].forEach(x=>document.getElementById('chip-'+x).classList.toggle('active',x===f));renderMemTab();}
+function toggleMem(id){
+  if(isMem(id)){state.memorized=state.memorized.filter(x=>x!==id);}
+  else{state.memorized.push(id);if(!state.reviews[id])state.reviews[id]={lastReviewed:null,notifiedAt:null};}
+  save();renderMemTab();
+  if(document.getElementById('tab-review').classList.contains('active'))renderRevTab();
+}
+function renderMemTab(){
+  const q=(document.getElementById('mem-search')?.value||'').toLowerCase();
+  const mem=state.memorized.length,pct=Math.round(mem/114*100);
+  document.getElementById('mem-count').textContent=mem;
+  document.getElementById('mem-pct').textContent=pct+'% memorized';
+  const circ=2*Math.PI*58,fill=document.getElementById('ring-fill');
+  fill.style.strokeDasharray=circ;fill.style.strokeDashoffset=circ*(1-mem/114);
+  const list=SURAHS.filter(s=>{
+    const mQ=!q||s.name.toLowerCase().includes(q)||s.ar.includes(q)||String(s.id).includes(q);
+    const mF=memFilter==='all'||(memFilter==='yes'&&isMem(s.id))||(memFilter==='no'&&!isMem(s.id));
+    return mQ&&mF;
+  });
+  document.getElementById('mem-list').innerHTML=list.length
+    ?list.map(s=>`<div class="surah-card ${isMem(s.id)?'memorized':''}">
+        <div class="surah-num">${s.id}</div>
+        <input type="checkbox" class="mem-checkbox" ${isMem(s.id)?'checked':''} onchange="toggleMem(${s.id})">
+        <div class="surah-info">
+          <div class="surah-name">${s.name}</div>
+          <div class="surah-arabic">${s.ar}</div>
+          <div class="surah-meta">${s.v} verses</div>
+        </div>
+      </div>`).join('')
+    :`<div class="empty-state"><div class="icon">🔍</div>No surahs match.</div>`;
+}
+
+/* ══ REVIEW ══════════════════════════════════════════════════ */
+function setCycle(d){state.reviewDays=d;save();document.getElementById('btn-7').classList.toggle('active',d===7);document.getElementById('btn-10').classList.toggle('active',d===10);renderRevTab();}
+async function requestNotif(){if(!('Notification'in window))return;const r=await Notification.requestPermission();updateNotifBtn(r);if(r==='granted')checkNotifications();}
+function updateNotifBtn(perm){
+  const btn=document.getElementById('notif-btn');if(!btn)return;btn.className='notif-btn';
+  if(perm==='granted'){btn.classList.add('granted');btn.textContent='✓ Notifications On';}
+  else if(perm==='denied'){btn.classList.add('denied');btn.textContent='🚫 Blocked in Browser';}
+  else{btn.textContent='🔔 Enable Notifications';}
+}
+function reviewNow(id){
+  state.reviews[id]={lastReviewed:new Date().toISOString(),notifiedAt:null};
+  // Mark surah as fully read in all active khatmas
+  const s=SURAHS.find(x=>x.id===id);
+  if(s){
+    let updated=false;
+    state.khatma.active.forEach(k=>{
+      if((k.verses[id]||0)<s.v){k.verses[id]=s.v;updated=true;}
+    });
+    if(updated&&document.getElementById('tab-khatma').classList.contains('active')){
+      renderKhatmaTab();
+    }
+  }
+  save();renderRevTab();
+}
+function setRevFilter(f){revFilter=f;renderRevTab();}
+function renderRevTab(){
+  const perm=('Notification'in window)?Notification.permission:'unsupported';
+  updateNotifBtn(perm);
+  document.getElementById('btn-7').classList.toggle('active',state.reviewDays===7);
+  document.getElementById('btn-10').classList.toggle('active',state.reviewDays===10);
+  const mem=SURAHS.filter(s=>isMem(s.id));
+  if(!mem.length){
+    document.getElementById('summary-row').innerHTML='';
+    document.getElementById('notif-banner-wrap').innerHTML='';
+    document.getElementById('review-list').innerHTML=`<div class="empty-state"><div class="icon">📚</div>Mark surahs as memorized in the Memorization tab first.</div>`;
+    return;
+  }
+  const cnt={overdue:0,soon:0,ok:0,never:0};
+  mem.forEach(s=>{const st=reviewStatus(s.id);if(cnt[st]!=null)cnt[st]++;});
+  document.getElementById('summary-row').innerHTML=[
+    `<button class="summary-badge badge-all ${revFilter==='all'?'active':''}" onclick="setRevFilter('all')">All ${mem.length}</button>`,
+    cnt.overdue?`<button class="summary-badge badge-overdue ${revFilter==='overdue'?'active':''}" onclick="setRevFilter('overdue')">🔴 Overdue ${cnt.overdue}</button>`:'',
+    cnt.soon?   `<button class="summary-badge badge-soon ${revFilter==='soon'?'active':''}" onclick="setRevFilter('soon')">🟡 Due Soon ${cnt.soon}</button>`:'',
+    cnt.never?  `<button class="summary-badge badge-never ${revFilter==='never'?'active':''}" onclick="setRevFilter('never')">⭐ Never ${cnt.never}</button>`:'',
+    cnt.ok?     `<button class="summary-badge badge-ok ${revFilter==='ok'?'active':''}" onclick="setRevFilter('ok')">✓ On Track ${cnt.ok}</button>`:'',
+  ].join('');
+  document.getElementById('notif-banner-wrap').innerHTML=perm!=='granted'
+    ?`<div class="notif-banner">⚠️ Notifications fire while this tab is open. The colour codes are your always-on safety net.</div>`:'';
+  const pri={never:0,overdue:1,soon:2,ok:3};
+  const sorted=[...mem].sort((a,b)=>{
+    const pa=pri[reviewStatus(a.id)]??4,pb=pri[reviewStatus(b.id)]??4;
+    if(pa!==pb)return pa-pb;
+    if(reviewStatus(a.id)==='overdue')return daysOverdue(b.id)-daysOverdue(a.id);
+    return daysLeft(a.id)-daysLeft(b.id);
+  });
+  const visible=sorted.filter(s=>revFilter==='all'||reviewStatus(s.id)===revFilter);
+  const gl={never:'⭐ Never Reviewed',overdue:'🔴 Overdue',soon:'🟡 Due Within 48 Hours',ok:'✓ On Track'};
+  let html='',lastG=null;
+  visible.forEach(s=>{
+    const st=reviewStatus(s.id);
+    if(st!==lastG&&revFilter==='all'){html+=`<div class="section-divider">${gl[st]}</div>`;lastG=st;}
+    const r=state.reviews[s.id];let tag='',meta='';
+    if(st==='never')  {tag=`<div class="status-tag tag-never">FIRST REVIEW</div>`;meta='Not yet reviewed';}
+    else if(st==='overdue'){const d=daysOverdue(s.id);tag=`<div class="status-tag tag-overdue">${d<1?'Today':Math.ceil(d)+'d'} OVERDUE</div>`;meta='Last: '+fmtDate(r?.lastReviewed);}
+    else if(st==='soon')  {const d=daysLeft(s.id);   tag=`<div class="status-tag tag-soon">${d<1?'<24h':Math.ceil(d)+'d'} LEFT</div>`;      meta='Last: '+fmtDate(r?.lastReviewed);}
+    else                  {const d=daysLeft(s.id);   tag=`<div class="status-tag tag-ok">${Math.floor(d)}d left</div>`;                     meta='Last: '+fmtDate(r?.lastReviewed);}
+    html+=`<div class="review-card status-${st}">
+      <div class="surah-num">${s.id}</div>
+      <div class="review-info">
+        <div class="review-name">${s.name}</div>
+        <div class="review-arabic">${s.ar}</div>
+        <div class="review-meta">${meta} · ${s.v} verses</div>
+      </div>
+      ${tag}
+      <button class="review-now-btn" onclick="reviewNow(${s.id})">✓ Reviewed</button>
+    </div>`;
+  });
+  document.getElementById('review-list').innerHTML=visible.length?html:`<div class="empty-state"><div class="icon">✨</div>Nothing in this category.</div>`;
+}
+
+/* ══ KHATMA ══════════════════════════════════════════════════ */
+
+function versesRead(k){return Object.values(k.verses).reduce((a,b)=>a+b,0);}
+function isComplete(k){return SURAHS.every(s=>(k.verses[s.id]||0)===s.v);}
+
+function checkSurah(kid,sid){
+  const k=state.khatma.active.find(x=>x.id===kid);
+  if(!k)return;
+  const s=SURAHS.find(x=>x.id===sid);if(!s)return;
+  const alreadyDone=(k.verses[sid]||0)===s.v;
+  const n=alreadyDone?0:s.v;
+  k.verses[sid]=n;save();
+  const isDone=!alreadyDone;
+  const card=document.getElementById(`kc-${kid}-${sid}`);
+  const cnt =document.getElementById(`kc-cnt-${kid}-${sid}`);
+  const chk =document.getElementById(`kc-chk-${kid}-${sid}`);
+  const slider=card?.querySelector('.khatma-slider');
+  if(card)card.classList.toggle('done',isDone);
+  if(cnt){cnt.textContent=n+' / '+s.v;cnt.className='khatma-surah-count'+(isDone?' full':'');}
+  if(chk){chk.textContent=isDone?'✅':'☐';chk.classList.toggle('done',isDone);chk.title=isDone?'مكتمل — اضغط للتراجع':'تحديد كمكتمل';}
+  if(slider)slider.value=n;
+  refreshProgress(kid,k);
+}
+
+function showToast(msg){
+  let t=document.getElementById('khatma-toast');
+  if(!t){t=document.createElement('div');t.id='khatma-toast';t.className='khatma-toast';document.body.appendChild(t);}
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+function startKhatma(){
+  state.khatma.active.push({id:Date.now().toString(),startDate:new Date().toISOString(),verses:{}});
+  save();renderKhatmaTab();
+}
+
+function deleteKhatma(kid){
+  showModal('هل تريد حذف هذه الختمة؟ لن يتم حفظ أي تقدم.',()=>{
+    state.khatma.active=state.khatma.active.filter(k=>k.id!==kid);
+    save();renderKhatmaTab();
+  });
+}
+
+function completeKhatma(kid){
+  const k=state.khatma.active.find(x=>x.id===kid);
+  if(!k)return;
+  showModal('🎉 الحمد لله — هل تريد تسجيل اكتمال هذه الختمة؟',()=>{
+    const endDate=new Date().toISOString();
+    const dur=daysSince(k.startDate);
+    const newEntry={startDate:k.startDate,endDate,durationDays:dur};
+    state.khatma.history.unshift(newEntry);
+    state.khatma.active=state.khatma.active.filter(x=>x.id!==kid);
+    save();
+    renderKhatmaTab();
+    showToast('🎉 تم تسجيل الختمة — بارك الله فيك');
+  });
+}
+
+function updateSlider(kid,sid,value){
+  const k=state.khatma.active.find(x=>x.id===kid);
+  if(!k)return;
+  const n=parseInt(value,10);
+  k.verses[sid]=n;save();
+  // patch DOM in-place
+  const s=SURAHS.find(x=>x.id===sid),isDone=n===s.v;
+  const card=document.getElementById(`kc-${kid}-${sid}`);
+  const cnt =document.getElementById(`kc-cnt-${kid}-${sid}`);
+  const chk =document.getElementById(`kc-chk-${kid}-${sid}`);
+  if(card)card.classList.toggle('done',isDone);
+  if(cnt){cnt.textContent=n+' / '+s.v;cnt.className='khatma-surah-count'+(isDone?' full':'');}
+  if(chk){
+    chk.textContent=isDone?'✅':'☐';
+    chk.classList.toggle('done',isDone);
+    chk.title=isDone?'مكتمل — اضغط للتراجع':'تحديد كمكتمل';
+  }
+  refreshProgress(kid,k);
+}
+
+function refreshProgress(kid,k){
+  const read=versesRead(k),pct=Math.round(read/TOTAL_VERSES*100);
+  const done=SURAHS.filter(s=>(k.verses[s.id]||0)===s.v).length;
+  const q=id=>document.getElementById(id);
+  if(q(`kb-fill-${kid}`)) q(`kb-fill-${kid}`).style.width=pct+'%';
+  if(q(`kb-pct-${kid}`))  q(`kb-pct-${kid}`).textContent=pct+'%';
+  if(q(`ks-read-${kid}`)) q(`ks-read-${kid}`).textContent=read.toLocaleString();
+  if(q(`ks-pct-${kid}`))  q(`ks-pct-${kid}`).textContent=pct+'%';
+  if(q(`ks-done-${kid}`)) q(`ks-done-${kid}`).textContent=done+' / 114';
+  if(q(`kc-btn-${kid}`))  q(`kc-btn-${kid}`).style.display=isComplete(k)?'block':'none';
+}
+
+function renderKhatmaTab(){
+  const el=document.getElementById('khatma-content');
+  const active=state.khatma.active;
+  let html='';
+
+  // Top bar — hide "New Khatma" button when one is already running
+  html+=`<div class="khatma-topbar">
+    <div class="khatma-topbar-title">ختماتي الجارية</div>
+    ${!active.length?`<button class="khatma-start-btn" onclick="startKhatma()">＋ ختمة جديدة</button>`:''}
+  </div>`;
+
+  // Empty state
+  if(!active.length){
+    html+=`<div class="khatma-empty">
+      <div class="icon">📖</div>
+      <div class="khatma-empty-title">لا توجد ختمة جارية</div>
+      <div class="khatma-empty-sub">اضغط الزر أعلاه لتبدأ رحلتك في القرآن الكريم</div>
+      <button class="khatma-start-btn" onclick="startKhatma()" style="margin-top:18px">＋ ختمة جديدة</button>
+    </div>`;
+  }
+
+  // Each active khatma
+  const hist=state.khatma.history;
+  active.forEach((k,idx)=>{
+    const khatmaNum=hist.length+idx+1;
+    const read=versesRead(k),pct=Math.round(read/TOTAL_VERSES*100);
+    const elapsed=daysSince(k.startDate);
+    const done=SURAHS.filter(s=>(k.verses[s.id]||0)===s.v).length;
+    const complete=isComplete(k);
+
+    const sliders=SURAHS.map(s=>{
+      const val=k.verses[s.id]||0,isDone=val===s.v;
+      return`<div class="khatma-surah-card ${isDone?'done':''}" id="kc-${k.id}-${s.id}">
+        <div class="khatma-surah-top">
+          <div class="surah-num">${s.id}</div>
+          <div class="khatma-surah-info">
+            <div class="khatma-surah-name">${s.name}</div>
+            <div class="khatma-surah-arabic">${s.ar}</div>
+          </div>
+          <div class="khatma-surah-count ${isDone?'full':''}" id="kc-cnt-${k.id}-${s.id}">${val} / ${s.v}</div>
+          <button class="khatma-check-btn ${isDone?'done':''}" id="kc-chk-${k.id}-${s.id}"
+            onclick="checkSurah('${k.id}',${s.id})"
+            title="${isDone?'مكتمل — اضغط للتراجع':'تحديد كمكتمل'}">${isDone?'✅':'☐'}</button>
+        </div>
+        <div class="khatma-slider-wrap">
+          <span class="slider-zero">0</span>
+          <input type="range" class="khatma-slider" min="0" max="${s.v}" value="${val}"
+            oninput="updateSlider('${k.id}',${s.id},this.value)">
+          <span class="slider-max">${s.v}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    html+=`<div class="khatma-block">
+      <div class="khatma-block-header">
+        <div class="khatma-badge">ختمة ${ordinal(khatmaNum)}</div>
+        <div class="khatma-block-info">
+          <div class="khatma-block-dates">بدأت: ${fmtDateTime(k.startDate)}</div>
+          <div class="khatma-block-dates">منذ ${fmtDays(elapsed)}</div>
+        </div>
+      </div>
+      <div class="khatma-stats-row">
+        <div class="khatma-stat-box"><div class="khatma-stat-value" id="ks-read-${k.id}">${read.toLocaleString()}</div><div class="khatma-stat-label">آية من ${TOTAL_VERSES.toLocaleString()}</div></div>
+        <div class="khatma-stat-box"><div class="khatma-stat-value" id="ks-pct-${k.id}">${pct}%</div><div class="khatma-stat-label">نسبة الإنجاز</div></div>
+        <div class="khatma-stat-box"><div class="khatma-stat-value" id="ks-done-${k.id}">${done} / 114</div><div class="khatma-stat-label">سور مكتملة</div></div>
+      </div>
+      <div class="khatma-prog-wrap">
+        <div class="khatma-prog-label">
+          <span>التقدم في القرآن الكريم</span>
+          <span>${read.toLocaleString()} / ${TOTAL_VERSES.toLocaleString()} آية</span>
+        </div>
+        <div class="khatma-bar-track"><div class="khatma-bar-fill" id="kb-fill-${k.id}" style="width:${pct}%"></div></div>
+        <div class="khatma-bar-pct" id="kb-pct-${k.id}">${pct}%</div>
+      </div>
+      <div class="khatma-action-row">
+        <button class="khatma-complete-btn" id="kc-btn-${k.id}"
+          style="display:${complete?'block':'none'}"
+          onclick="completeKhatma('${k.id}')">
+          🎉 الحمد لله — تسجيل الاكتمال
+        </button>
+        <button class="khatma-delete-btn" onclick="deleteKhatma('${k.id}')">🗑 حذف الختمة</button>
+      </div>
+      <div class="khatma-surah-list">${sliders}</div>
+    </div>`;
+  });
+
+  // History
+  if(hist.length){
+    html+=`<div class="khatma-history">
+      <div class="khatma-history-title">سجل الختمات المكتملة · ${hist.length} ختمة</div>
+      ${hist.map((h,i)=>`
+        <div class="khatma-history-card">
+          <div class="khatma-history-num">${ordinal(hist.length-i)||'#'+(hist.length-i)}</div>
+          <div class="khatma-history-info">
+            <div class="khatma-history-dates">${fmtDateAr(h.startDate)} ← ${fmtDateAr(h.endDate)}</div>
+            <div class="khatma-history-dur">المدة: ${fmtDays(h.durationDays)}</div>
+          </div>
+          <div class="khatma-history-badge">✓ مكتملة</div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  el.innerHTML=html;
+}
+
+/* ══ NOTIFICATIONS ════════════════════════════════════════════ */
+function checkNotifications(){
+  if(!('Notification'in window)||Notification.permission!=='granted')return;
+  const now=Date.now();let changed=false;
+  state.memorized.forEach(id=>{
+    const r=state.reviews[id];if(!r?.lastReviewed)return;
+    const due=new Date(r.lastReviewed).getTime()+state.reviewDays*MS;
+    const notified=r.notifiedAt&&new Date(r.notifiedAt)>new Date(r.lastReviewed);
+    if(now>=due&&!notified){
+      const s=SURAHS.find(x=>x.id===id);
+      new Notification('📖 Review Due · حافظ',{body:`Time to revise Surah ${id}: ${s.name} — ${s.ar}`,tag:'hafiz-'+id});
+      state.reviews[id]={...r,notifiedAt:new Date().toISOString()};changed=true;
+    }
+  });
+  if(changed)save();
+}
+
+/* ══ SERVICE WORKER ═══════════════════════════════════════════ */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(r => console.log('SW registered:', r.scope))
+      .catch(e => console.log('SW error:', e));
+  });
+}
+
+load();
+showSyncStatus('setup');
+renderMemTab(); renderRevTab();
+document.getElementById('btn-7').classList.toggle('active',state.reviewDays===7);
+document.getElementById('btn-10').classList.toggle('active',state.reviewDays===10);
+checkNotifications();setInterval(checkNotifications,60000);
+if('Notification'in window)updateNotifBtn(Notification.permission);
+</script>
+<script src="https://apis.google.com/js/api.js?onload=gapiLoaded"></script>
+<script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" async defer></script>
+</body>
+</html>
